@@ -1,3 +1,11 @@
+/* Simulation of a security box with a 6 digit code, every digit can go from 1 to 4
+introduced by 4 Buttons.
+When the box is open de LED_BUILTIN blink each 250ms
+If the 6 digits are introduced the box is closed and the led builtin blink 100ms each 1 sec
+If the code to open the box is correct all LEDs blink 3 times
+If it is incorrect all the LEDs blink each 250ms for 3 sec
+Every time you press a button the correspondet led turn on for 250ms*/
+
 #include <Arduino.h>
 
 typedef union{
@@ -25,169 +33,174 @@ typedef union{
 #define SW3 8
 #define SW4 9
 
-#define DigitoIngresado   flag1.bit.b0
-#define ABIERTO           flag1.bit.b1
-#define SecCorrecto       flag1.bit.b2
-#define SecError          flag1.bit.b3
-#define builtin           flag1.bit.b4
+#define INPUTDIGIT   flag1.bit.b0
+#define BOXOPEN           flag1.bit.b1
+#define CORRECTSEC       flag1.bit.b2
+#define ERRORSEC          flag1.bit.b3
+#define BUILTIN           flag1.bit.b4
 
-void leerBotones();
-void secAbierto();
-void SecCerrado();
-void Error();
-void Correcto();
-                        
-uint8_t ESTADO, estado, estadoAnterior, ledPrendido, i, CantDigitos;
-uint32_t CLAVEINGRESADA, CLAVEGUARDADA;
-unsigned long Tiempo, UTDebounce, UTPrendido, UTsec, UTSec;
+void ReadBtns();
+void OpenSec();
+void ClosedSec();
+void ErrorCode();
+void CorrectCode();
+
+uint8_t btnON, actualBtn, lastBtn, i, numOfDigits;
+uint32_t actualCode, savedCode;
+unsigned long time, lastTimeDebounce, lastTimeOn, lastTimeSec2, lastTimeSec1;
 
 _flag flag1;
 
-void leerBotones(){
+/*Check if a button is pressed and save it in btnON*/
+
+void ReadBtns(){
   if (digitalRead(SW1) || digitalRead(SW2) || digitalRead(SW3) || digitalRead(SW4)){
-    estado = 0x00;
+    actualBtn = 0x00;
     if( digitalRead(SW1))
-      estado |= 0x01;
+      actualBtn |= 0x01;
     if( digitalRead(SW2))
-      estado |= 0x02;
+      actualBtn |= 0x02;
     if( digitalRead(SW3))
-      estado |= 0x04;
+      actualBtn |= 0x04;
     if( digitalRead(SW4))
-      estado |= 0x08;
-      Tiempo = millis();
-      if( (Tiempo - UTDebounce) >= 30){
-       if (estado ^ estadoAnterior){
-         estadoAnterior = estado;
-         if (estadoAnterior & 0x01 )
-           ESTADO = 0x01;
-         if (estadoAnterior & 0x02 )
-           ESTADO = 0x02;
-         if (estadoAnterior & 0x04 )
-           ESTADO = 0x04;
-         if (estadoAnterior & 0x08 )
-           ESTADO = 0x08;
-         UTPrendido = millis();
-         DigitoIngresado = 1;
-         UTDebounce = 0;
+      actualBtn |= 0x08;
+      time = millis();
+      if( (time - lastTimeDebounce) >= 30){
+       if (actualBtn ^ lastBtn){
+         lastBtn = actualBtn;
+         if (lastBtn & 0x01 )
+           btnON = 0x01;
+         if (lastBtn & 0x02 )
+           btnON = 0x02;
+         if (lastBtn & 0x04 )
+           btnON = 0x04;
+         if (lastBtn & 0x08 )
+           btnON = 0x08;
+         lastTimeOn = millis();
+         INPUTDIGIT = 1;
+         lastTimeDebounce = 0;
        }
        else{
-        UTDebounce = millis();
+        lastTimeDebounce = millis();
        }
      }
   }
   else{
-    estadoAnterior = 0x00;
-    UTDebounce = millis();
+    lastBtn = 0x00;
+    lastTimeDebounce = millis();
   }
 }
 
-void secAbierto(){
-  Tiempo = millis();
-  if((Tiempo - UTsec) > 250){
-    builtin ^= 0x01;
-    UTsec = millis();
+/* Secuence of Open and Close box */
+
+void OpenSec(){
+  time = millis();
+  if((time - lastTimeSec2) > 250){
+    BUILTIN ^= 0x01;
+    lastTimeSec2 = millis();
   }
 }
 
-void SecCerrado(){
-  Tiempo = millis();
-  if(builtin && ((Tiempo - UTsec) > 100)){
-    builtin = 0;
-    UTsec = millis();
+void ClosedSec(){
+  time = millis();
+  if(BUILTIN && ((time - lastTimeSec2) > 100)){
+    BUILTIN = 0;
+    lastTimeSec2 = millis();
   }
-  if(!builtin && ((Tiempo - UTsec) > 1000)){
-    builtin = 1;
-    UTsec = millis();
+  if(!BUILTIN && ((time - lastTimeSec2) > 1000)){
+    BUILTIN = 1;
+    lastTimeSec2 = millis();
   }
 }
 
-void Correcto(){
+/*Secuence of correct and incorrect Code when the box is closed*/
+
+void CorrectCode(){
   if (i == 0)
-    ESTADO = 0;
-  Tiempo = millis();
-  if((Tiempo - UTSec) >= 500){
-    ESTADO ^= 0b00001111;
+    btnON = 0;
+  time = millis();
+  if((time - lastTimeSec1) >= 500){
+    btnON ^= 0b00001111;
     i++;
     if(i == 7){
       i = 0;
-      SecCorrecto = 0;
+      CORRECTSEC = 0;
     }
-    UTSec = millis();
+    lastTimeSec1 = millis();
   }
 }
 
-void Error(){
+void ErrorCode(){
   if( i == 0)
-   ESTADO = 0x00;
-  Tiempo = millis();
-  if((Tiempo - UTSec) >= 250){
-    ESTADO ^= 0b00001111;
+   btnON = 0x00;
+  time = millis();
+  if((time - lastTimeSec1) >= 250){
+    btnON ^= 0b00001111;
     i++;
     if(i == 13){
       i = 0;
-      SecError = 0;
+      ERRORSEC = 0;
     }
-    UTSec = millis();
+    lastTimeSec1 = millis();
   }
 }
 
-void setup(){                                               
+void setup(){
   pinMode(LED1, OUTPUT);
   pinMode(LED2, OUTPUT);
   pinMode(LED3, OUTPUT);
   pinMode(LED4, OUTPUT);
   pinMode(LEDBUILTIN, OUTPUT);
-  
+
   pinMode(SW1, INPUT);
   pinMode(SW2, INPUT);
   pinMode(SW3, INPUT);
   pinMode(SW4, INPUT);
 
-  ABIERTO = 1;
-  ledPrendido = 0x01;
+  BOXOPEN = 0x01;
 }
 
 void loop(){
-  leerBotones();
-  if(DigitoIngresado){
-    CLAVEINGRESADA <<= 4;
-    CLAVEINGRESADA |= ESTADO;
-    DigitoIngresado = 0;
-    CantDigitos++;
+  ReadBtns();
+  if(INPUTDIGIT){
+    actualCode <<= 4;
+    actualCode |= btnON;
+    INPUTDIGIT = 0;
+    numOfDigits++;
   }
-  if( CantDigitos == 6 ){
-    CantDigitos = 0;
-    if(ABIERTO){
-      CLAVEGUARDADA = CLAVEINGRESADA;
-      ABIERTO = 0;
+  if( numOfDigits == 6 ){
+    numOfDigits = 0;
+    if(BOXOPEN){
+      savedCode = actualCode;
+      BOXOPEN = 0x00;
     }
     else{
-      if(CLAVEINGRESADA == CLAVEGUARDADA){
-        CLAVEGUARDADA = 0;
-        SecCorrecto = 1;
-        ABIERTO = 1;
+      if(actualCode == savedCode){
+        savedCode = 0;
+        CORRECTSEC = 1;
+        BOXOPEN = 0x01;
       }
       else
-        SecError = 1;
+        ERRORSEC = 1;
     }
-    CLAVEINGRESADA = 0;
+    actualCode = 0;
   }
-  if(ABIERTO)
-    secAbierto();
-  if(!ABIERTO)
-    SecCerrado();
-  if (SecCorrecto)
-    Correcto();
-  if (SecError)
-    Error();
-  if(!SecCorrecto && !SecError){
-    Tiempo = millis();
-    if ((Tiempo - UTPrendido) > 250)
-      ESTADO = 0x00;
+  if(BOXOPEN)
+    OpenSec();
+  if(!BOXOPEN)
+    ClosedSec();
+  if (CORRECTSEC)
+    CorrectCode();
+  if (ERRORSEC)
+    ErrorCode();
+  if(!CORRECTSEC && !ERRORSEC){
+    time = millis();
+    if ((time - lastTimeOn) > 250)
+      btnON = 0x00;
   }
-  digitalWrite(LED1,ESTADO & 0x01); 
-  digitalWrite(LED2,ESTADO & 0x02);
-  digitalWrite(LED3,ESTADO & 0x04);
-  digitalWrite(LED4,ESTADO & 0x08);
-  digitalWrite(LEDBUILTIN, builtin);
+  digitalWrite(LED1,btnON & 0x01);
+  digitalWrite(LED2,btnON & 0x02);
+  digitalWrite(LED3,btnON & 0x04);
+  digitalWrite(LED4,btnON & 0x08);
+  digitalWrite(LEDBUILTIN, BUILTIN);
 }

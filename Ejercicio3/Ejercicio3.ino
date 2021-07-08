@@ -1,3 +1,5 @@
+/* This program turn on and turn of each LED every time the correspondent button is pressed*/
+
 #define LED1 2
 #define LED2 3
 #define LED3 4
@@ -8,13 +10,13 @@
 #define SW3 8
 #define SW4 9
 
-void leerBotones();
+void ReadBtns();
 
-uint8_t ESTADO = 0b00000000;                          
-uint8_t estado, estadoAnterior = 0x00;
-unsigned long TDebounce, UTDebounce, Delay = 30;
+uint8_t btnON = 0b00000000;                          
+uint8_t actualBtn, lastBtns = 0x00;
+unsigned long debounceTime, lastTimeDebounce, delay = 30;
 
-void setup(){                                               
+void setup(){
   pinMode(LED1, OUTPUT);
   pinMode(LED2, OUTPUT);
   pinMode(LED3, OUTPUT);
@@ -25,44 +27,44 @@ void setup(){
   pinMode(SW4, INPUT);
 }
 
-void leerBotones(){
+void ReadBtns(){
   if ( digitalRead(SW1) || digitalRead(SW2) || digitalRead(SW3) || digitalRead(SW4)){
-    estado = 0x00;
+    actualBtn = 0x00;
     if( digitalRead(SW1))
-      estado |= 0x01;
+      actualBtn |= 0x01;
     if( digitalRead(SW2))
-      estado |= 0x02;
+      actualBtn |= 0x02;
     if( digitalRead(SW3))
-      estado |= 0x04;
+      actualBtn |= 0x04;
     if( digitalRead(SW4))
-      estado |= 0x08;
-      TDebounce = millis();
-      if( (TDebounce - UTDebounce) > Delay){
-       if (estado ^ estadoAnterior){
-         estadoAnterior = estado;
-         if (estadoAnterior & 0x01 )
-           ESTADO ^= 0x01;
-         if (estadoAnterior & 0x02 )
-           ESTADO ^= 0x02;
-         if (estadoAnterior & 0x04 )
-           ESTADO ^= 0x04;
-         if (estadoAnterior & 0x08 )
-           ESTADO ^= 0x08;
+      actualBtn |= 0x08;
+      debounceTime = millis();
+      if( (debounceTime - lastTimeDebounce) > delay){
+       if (actualBtn ^ lastBtns){
+         lastBtns = actualBtn;
+         if (lastBtns & 0x01 )
+           btnON ^= 0x01;
+         if (lastBtns & 0x02 )
+           btnON ^= 0x02;
+         if (lastBtns & 0x04 )
+           btnON ^= 0x04;
+         if (lastBtns & 0x08 )
+           btnON ^= 0x08;
        }
        else{
-        UTDebounce = millis();
+        lastTimeDebounce = millis();
        }
      }
   }else{
-    estadoAnterior = 0x00;
-    UTDebounce = millis();
+    lastBtns = 0x00;
+    lastTimeDebounce = millis();
   }
 }
 
 void loop() {
-  leerBotones();
-  digitalWrite(LED1,ESTADO & 0x01); 
-  digitalWrite(LED2,ESTADO & 0x02);
-  digitalWrite(LED3,ESTADO & 0x04);
-  digitalWrite(LED4,ESTADO & 0x08);
+  ReadBtns();
+  digitalWrite(LED1,btnON & 0x01);
+  digitalWrite(LED2,btnON & 0x02);
+  digitalWrite(LED3,btnON & 0x04);
+  digitalWrite(LED4,btnON & 0x08);
 }

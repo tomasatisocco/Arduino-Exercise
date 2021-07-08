@@ -1,3 +1,5 @@
+/*This program turn on a Led while the correspondent button is pressed*/
+
 #define LED1 2
 #define LED2 3
 #define LED3 4
@@ -8,7 +10,8 @@
 #define SW3 8
 #define SW4 9
 
-uint8_t ESTADO = 0b00000000;
+uint8_t btnON = 0b00000000;
+
 void setup(){
   pinMode(LED1, OUTPUT);
   pinMode(LED2, OUTPUT);
@@ -21,21 +24,21 @@ void setup(){
 }
 
 void loop() {
-  ESTADO = 0b00000000;
+  btnON = 0b00000000;
   if(digitalRead(SW1)){
-    ESTADO |= 0x01;
+    btnON |= 0x01;
   }
    if(digitalRead(SW2)){
-    ESTADO |= 0x02;
+    btnON |= 0x02;
   }
    if(digitalRead(SW3)){
-    ESTADO |= 0x04;
+    btnON |= 0x04;
   }
    if(digitalRead(SW4)){
-    ESTADO |= 0x08;
+    btnON |= 0x08;
   }
-  digitalWrite(LED1,ESTADO & 0x01);
-  digitalWrite(LED2,ESTADO & 0x02);
-  digitalWrite(LED3,ESTADO & 0x04);
-  digitalWrite(LED4,ESTADO & 0x08);
+  digitalWrite(LED1,btnON & 0x01);
+  digitalWrite(LED2,btnON & 0x02);
+  digitalWrite(LED3,btnON & 0x04);
+  digitalWrite(LED4,btnON & 0x08);
 }

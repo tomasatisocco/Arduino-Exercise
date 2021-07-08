@@ -1,3 +1,9 @@
+/* This program count with 4 buttons and 4 leds.
+If button 1 is pressed the leds turn on in secuence, ie. first LED1 turno on followe for LED2 etc.
+each LED is on for 500ms and if the button 2 is pressed the secuence start in the oposite way
+With the button 3 all LEDS turn off
+With the button 4 the time each led is turned on multiplies by 2 till 2sec after that the time change to 125ms*/
+
 typedef union{
   struct{
     uint8_t b0: 1;
@@ -22,108 +28,108 @@ typedef union{
 #define SW3 8
 #define SW4 9
 
-#define ADELANTE    flag1.bit.b0
-#define ATRAS    flag1.bit.b1
+#define FOWARD    flag1.bit.b0
+#define BACKWARD    flag1.bit.b1
 
-void leerBotones();
+void ReadBtns();
 
-uint8_t ESTADO = 0b00000000;                          
-uint8_t estado, estadoAnterior, multiplicador, ledPrendido;
-unsigned long Tiempo, UTDebounce, Delay, UTDelay;
+uint8_t btnON = 0b00000000;
+uint8_t actualBtn, lastBtn, multiplier, ledON;
+unsigned long time, lastTimeDebounce, delay, lastTimedelay;
 
 _flag flag1;
 
-void setup(){                                               
+void setup(){
   pinMode(LED1, OUTPUT);
   pinMode(LED2, OUTPUT);
   pinMode(LED3, OUTPUT);
   pinMode(LED4, OUTPUT);
-  
+
   pinMode(SW1, INPUT);
   pinMode(SW2, INPUT);
   pinMode(SW3, INPUT);
   pinMode(SW4, INPUT);
-  
-  ADELANTE = 1;
-  multiplicador = 0x02;
-  ledPrendido = 0x01;
+
+  FOWARD = 1;
+  multiplier = 0x02;
+  ledON = 0x01;
 }
 
-void leerBotones(){
+void ReadBtns(){
   if ( digitalRead(SW1) || digitalRead(SW2) || digitalRead(SW3) || digitalRead(SW4)){
-    estado = 0x00;
+    actualBtn = 0x00;
     if( digitalRead(SW1))
-      estado |= 0x01;
+      actualBtn |= 0x01;
     if( digitalRead(SW2))
-      estado |= 0x02;
+      actualBtn |= 0x02;
     if( digitalRead(SW3))
-      estado |= 0x04;
+      actualBtn |= 0x04;
     if( digitalRead(SW4))
-      estado |= 0x08;
-      Tiempo = millis();
-      Delay = 30;
-      if( (Tiempo - UTDebounce) > Delay){
-       if (estado ^ estadoAnterior){
-         estadoAnterior = estado;
-         if (estadoAnterior & 0x01 )
-           ESTADO = 0x01;
-         if (estadoAnterior & 0x02 )
-           ESTADO = 0x02;
-         if (estadoAnterior & 0x04 )
-           ESTADO = 0x04;
-         if (estadoAnterior & 0x08 )
-           ESTADO = 0x08;
+      actualBtn |= 0x08;
+      time = millis();
+      delay = 30;
+      if( (time - lastTimeDebounce) > delay){
+       if (actualBtn ^ lastBtn){
+         lastBtn = actualBtn;
+         if (lastBtn & 0x01 )
+           btnON = 0x01;
+         if (lastBtn & 0x02 )
+           btnON = 0x02;
+         if (lastBtn & 0x04 )
+           btnON = 0x04;
+         if (lastBtn & 0x08 )
+           btnON = 0x08;
        }
        else{
-        UTDebounce = 0;
+        lastTimeDebounce = 0;
        }
      }
   }else{
-    estadoAnterior = 0x00;
-    UTDebounce = millis();
+    lastBtn = 0x00;
+    lastTimeDebounce = millis();
   }
 }
 
 void loop() {
-  leerBotones();
-  if (ESTADO & 0x01){
-    ADELANTE = 1;
-    ATRAS = 0;
+  ReadBtns();
+  if (btnON & 0x01){
+    FOWARD = 1;
+    BACKWARD = 0;
   }
-  if (ESTADO & 0x02){
-    ADELANTE = 0;
-    ATRAS = 1;
+  if (btnON & 0x02){
+    FOWARD = 0;
+    BACKWARD = 1;
   }
-  if (ESTADO & 0x04){
-    ADELANTE = 0;
-    ATRAS = 0;
+  if (btnON & 0x04){
+    FOWARD = 0;
+    BACKWARD = 0;
   }
-  if (ESTADO & 0x08){
-    multiplicador <<= 1;
-    if (multiplicador > 16)
-      multiplicador = 0x01;
+  if (btnON & 0x08){
+    multiplier <<= 1;
+    if (multiplier > 16)
+      multiplier = 0x01;
   }
-  Delay = 125 * multiplicador ;
-  Tiempo = millis();
-  if ((Tiempo - UTDelay) > Delay){
-    if(ADELANTE){
-      ledPrendido <<= 1;
-      UTDelay = millis();
+  delay = 125 * multiplier ;
+  time = millis();
+  if ((time - lastTimedelay) > delay){
+    if(FOWARD){
+      ledON <<= 1;
+      lastTimedelay = millis();
     }
-    if (ATRAS){
-      ledPrendido >>= 1;
-      UTDelay = millis();
+    if (BACKWARD){
+      ledON >>= 1;
+      lastTimedelay = millis();
     }
-    if(ledPrendido > 8)
-      ledPrendido = 0x01;
-    if (ledPrendido < 1)
-      ledPrendido = 0x08;
-    if (!ADELANTE && !ATRAS)
-      ledPrendido = 0x00;
+    if(ledON > 8)
+      ledON = 0x01;
+    if (ledON < 1)
+      ledON = 0x08;
+    if (!FOWARD && !BACKWARD)
+      ledON = 0x00;
   }
-  digitalWrite(LED1,ledPrendido & 0x01); 
-  digitalWrite(LED2,ledPrendido & 0x02);
-  digitalWrite(LED3,ledPrendido & 0x04);
-  digitalWrite(LED4,ledPrendido & 0x08);
-  ESTADO = 0x00;
+  digitalWrite(LED1,ledON & 0x01);
+  digitalWrite(LED2,ledON & 0x02);
+  digitalWrite(LED3,ledON & 0x04);
+  digitalWrite(LED4,ledON & 0x08);
+  btnON = 0x00;
 }

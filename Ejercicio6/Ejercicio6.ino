@@ -26,16 +26,15 @@ typedef union{
 #define LED2 3
 #define LED3 4
 #define LED4 5
-#define LEDBUILTIN 13
 
-#define SW1 6
-#define SW2 7
-#define SW3 8
-#define SW4 9
+#define SW1   6
+#define SW2   7
+#define SW3   8
+#define SW4   9
 
-#define INPUTDIGIT   flag1.bit.b0
+#define INPUTDIGIT        flag1.bit.b0
 #define BOXOPEN           flag1.bit.b1
-#define CORRECTSEC       flag1.bit.b2
+#define CORRECTSEC        flag1.bit.b2
 #define ERRORSEC          flag1.bit.b3
 #define BUILTIN           flag1.bit.b4
 
@@ -78,7 +77,7 @@ void ReadBtns(){
            btnON = 0x08;
          lastTimeOn = millis();
          INPUTDIGIT = 1;
-         lastTimeDebounce = 0;
+         lastTimeDebounce = millis();
        }
        else{
         lastTimeDebounce = millis();
@@ -150,7 +149,6 @@ void setup(){
   pinMode(LED2, OUTPUT);
   pinMode(LED3, OUTPUT);
   pinMode(LED4, OUTPUT);
-  pinMode(LEDBUILTIN, OUTPUT);
 
   pinMode(SW1, INPUT);
   pinMode(SW2, INPUT);
@@ -202,5 +200,5 @@ void loop(){
   digitalWrite(LED2,btnON & 0x02);
   digitalWrite(LED3,btnON & 0x04);
   digitalWrite(LED4,btnON & 0x08);
-  digitalWrite(LEDBUILTIN, BUILTIN);
+  digitalWrite(LED_BUILTIN, BUILTIN);
 }
